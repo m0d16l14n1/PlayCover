@@ -102,6 +102,16 @@ public class IPA {
         return false
     }
 
+    /// In console mode, prints the App Store notice instead of showing an alert and returns true
+    private func handledInConsole(_ bundleID: String, _ supportMacOS: Bool) -> Bool {
+        guard Log.shared.consoleMode else { return false }
+        if supportMacOS {
+            FileHandle.standardError.write(
+                Data("warning: \(bundleID) is also available natively for macOS on the App Store\n".utf8))
+        }
+        return true
+    }
+
     @MainActor
     func checkOfficialMacOS(app: Application) async -> Bool {
         let bundleID: String
@@ -119,7 +129,8 @@ public class IPA {
             appID = Int(stringArray.last ?? "0") ?? 0
         }
         let supportMacOS: Bool = await checkMacOSCompatibility(appID: appID)
-        let showAlert = InstallPreferences.shared.showAppStorePopup
+        // The command line interface never shows the alert, it only prints a warning
+        let showAlert = InstallPreferences.shared.showAppStorePopup && !handledInConsole(bundleID, supportMacOS)
         if showAlert && supportMacOS {
             let alert = NSAlert()
             alert.messageText = NSLocalizedString("alert.appstore", comment: "")

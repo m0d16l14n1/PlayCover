@@ -98,6 +98,83 @@ struct AppSettingsData: Codable {
     }
 }
 
+// MARK: - Resolution presets (shared by the settings window and the command line interface)
+extension AppSettingsData {
+    /// Pixel count above which apps tend to crash
+    static let highResolutionThreshold = 2621440 * 2.0
+
+    var exceedsHighResolutionThreshold: Bool {
+        Double(windowWidth * windowHeight) * customScaler >= AppSettingsData.highResolutionThreshold
+    }
+
+    /// Updates windowWidth and windowHeight from the selected resolution preset
+    mutating func applyResolutionPreset(customWidth: Int, customHeight: Int) {
+        switch resolution {
+        // Adaptive resolution = Auto
+        case 1:
+            let auto = AppSettings.autoResolution()
+            windowWidth = auto.width
+            windowHeight = auto.height
+        // Adaptive resolution = 1080p
+        case 2:
+            windowHeight = 1080
+            windowWidth = widthFromAspectRatio(1080)
+        // Adaptive resolution = 1440p
+        case 3:
+            windowHeight = 1440
+            windowWidth = widthFromAspectRatio(1440)
+        // Adaptive resolution = 4K
+        case 4:
+            windowHeight = 2160
+            windowWidth = widthFromAspectRatio(2160)
+        // Adaptive resolution = Custom
+        case 5:
+            windowWidth = customWidth
+            windowHeight = customHeight
+        // Adaptive resolution = Off
+        default:
+            windowHeight = 1080
+            windowWidth = 1920
+        }
+    }
+
+    func widthFromAspectRatio(_ height: Int) -> Int {
+        switch aspectRatio {
+        case 0:
+            return (height / 3) * 4
+        case 2:
+            return (height / 10) * 16
+        default:
+            return (height / 9) * 16
+        }
+    }
+
+    /// Updates the resizable window aspect ratio from the selected preset; "Custom" keeps the current values
+    mutating func applyResizableAspectRatioPreset() {
+        switch resizableAspectRatioType {
+        // Aspect ratio = Free
+        case 0:
+            resizableAspectRatioWidth = 0
+            resizableAspectRatioHeight = 0
+        // Aspect ratio = Custom
+        case 1:
+            break
+        // Aspect ratio = 4:3
+        case 2:
+            resizableAspectRatioWidth = 4
+            resizableAspectRatioHeight = 3
+        // Aspect ratio = 16:10
+        case 4:
+            resizableAspectRatioWidth = 16
+            resizableAspectRatioHeight = 10
+        // Aspect ratio = 16:9
+        default:
+            resizableAspectRatioWidth = 16
+            resizableAspectRatioHeight = 9
+        }
+    }
+}
+
 class AppSettings {
     static var appSettingsDir: URL {
         let settingsFolder =

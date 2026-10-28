@@ -13,6 +13,26 @@ struct CheckBoxHelper {
     var buttonvar: String
 }
 
+/// What to remove alongside the app bundle when uninstalling
+struct UninstallOptions {
+    var clearAppData = false
+    var removeAppKeymap = false
+    var removeAppSettings = false
+    var removeAppEntitlements = false
+    var removePlayChain = false
+
+    static let everything = UninstallOptions(clearAppData: true, removeAppKeymap: true, removeAppSettings: true,
+                                             removeAppEntitlements: true, removePlayChain: true)
+
+    static var fromPreferences: UninstallOptions {
+        UninstallOptions(clearAppData: UninstallPreferences.shared.clearAppData,
+                         removeAppKeymap: UninstallPreferences.shared.removeAppKeymap,
+                         removeAppSettings: UninstallPreferences.shared.removeAppSettings,
+                         removeAppEntitlements: UninstallPreferences.shared.removeAppEntitlements,
+                         removePlayChain: UninstallPreferences.shared.removePlayChain)
+    }
+}
+
 class Uninstaller {
     private static let libraryUrl = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library")
     private static let pruneURLs: [URL] = [
@@ -109,29 +129,33 @@ class Uninstaller {
     }
 
     static func uninstall(_ app: PlayApp) async {
+        await uninstall(app, options: .fromPreferences)
+    }
+
+    static func uninstall(_ app: PlayApp, options: UninstallOptions, refreshLibrary: Bool = true) async {
         var uninstallNum = 0
 
-        if UninstallPreferences.shared.clearAppData {
+        if options.clearAppData {
             await app.clearAllCache()
             uninstallNum += 1
         }
 
-        if UninstallPreferences.shared.removeAppKeymap {
+        if options.removeAppKeymap {
             FileManager.default.delete(at: app.keymapping.baseKeymapURL)
             uninstallNum += 1
         }
 
-        if UninstallPreferences.shared.removeAppSettings {
+        if options.removeAppSettings {
             FileManager.default.delete(at: app.settings.settingsUrl)
             uninstallNum += 1
         }
 
-        if UninstallPreferences.shared.removeAppEntitlements {
+        if options.removeAppEntitlements {
             FileManager.default.delete(at: app.entitlements)
             uninstallNum += 1
         }
 
-        if UninstallPreferences.shared.removePlayChain {
+        if options.removePlayChain {
             let url = KeyCover.playChainPath.appendingPathComponent(app.info.bundleIdentifier)
             FileManager.default.delete(at: url)
 
@@ -142,7 +166,7 @@ class Uninstaller {
         }
 
         app.removeAlias()
-        app.deleteApp()
+        app.deleteApp(refreshLibrary: refreshLibrary)
 
         if uninstallNum >= 5 {
             do {

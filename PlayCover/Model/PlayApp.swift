@@ -330,9 +330,11 @@ extension PlayApp {
         FileManager.default.delete(at: playChainURL.appendingPathExtension("db"))
     }
 
-    func deleteApp() {
+    func deleteApp(refreshLibrary: Bool = true) {
         FileManager.default.delete(at: URL(fileURLWithPath: url.path))
-        AppsVM.shared.fetchApps()
+        if refreshLibrary {
+            AppsVM.shared.fetchApps()
+        }
     }
 
     func sign() {

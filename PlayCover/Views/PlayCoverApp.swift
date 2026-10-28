@@ -71,6 +71,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
+enum PlayCoverEntryPoint {
+    static func main() {
+        // `PlayCover <command> ...` from a terminal runs the command line interface instead of the app
+        if PlayCoverCLI.shouldHandle(CommandLine.arguments) {
+            PlayCoverCLI.run(CommandLine.arguments)
+        }
+        PlayCoverApp.main()
+    }
+}
+
 struct PlayCoverApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var updaterViewModel = UpdaterViewModel()

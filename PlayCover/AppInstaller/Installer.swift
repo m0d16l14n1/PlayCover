@@ -44,19 +44,24 @@ class Installer {
         }
     }
 
-    // swiftlint:disable:next function_body_length
-    static func install(ipaUrl: URL, export: Bool, returnCompletion: @escaping (URL?) -> Void) {
-        // If (the option key is held or the install playtools popup settings is true) and its not an export,
-        //    then show the installer dialog
-        let installPlayTools: Bool
-        let applicationType = InstallPreferences.shared.defaultAppType
-
+    static private func shouldInstallPlayTools(export: Bool) -> Bool {
         if (ModifierKeyObserver.shared.isOptionKeyPressed
                 || InstallPreferences.shared.showInstallPopup) && !export {
-            installPlayTools = installPlayToolsPopup()
+            return installPlayToolsPopup()
         } else {
-            installPlayTools = InstallPreferences.shared.alwaysInstallPlayTools
+            return InstallPreferences.shared.alwaysInstallPlayTools
         }
+    }
+
+    // swiftlint:disable:next function_body_length
+    static func install(ipaUrl: URL, export: Bool,
+                        installPlayTools playToolsOverride: Bool? = nil,
+                        applicationType applicationTypeOverride: LSApplicationCategoryType? = nil,
+                        returnCompletion: @escaping (URL?) -> Void) {
+        // If (the option key is held or the install playtools popup settings is true) and its not an export,
+        //    then show the installer dialog
+        let installPlayTools = playToolsOverride ?? shouldInstallPlayTools(export: export)
+        let applicationType = applicationTypeOverride ?? InstallPreferences.shared.defaultAppType
 
         InstallVM.shared.next(.begin, 0.0, 0.0)
 

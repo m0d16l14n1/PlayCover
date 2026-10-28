@@ -10,7 +10,19 @@ class Log: ObservableObject {
 
     static let shared = Log()
 
+    /// Set by the command line interface: messages are written to the terminal instead of alert dialogs
+    var consoleMode = false
+    /// In console mode, also echo informational log lines to stderr
+    var verbose = false
+    private(set) var errorCount = 0
+
     func error(_ err: Error) {
+        if consoleMode {
+            errorCount += 1
+            log(err.localizedDescription, isError: true)
+            FileHandle.standardError.write(Data("error: \(err.localizedDescription)\n".utf8))
+            return
+        }
         Task { @MainActor in
             self.dialog(
                 question: NSLocalizedString("alert.error", comment: ""),
@@ -24,6 +36,11 @@ class Log: ObservableObject {
     }
 
     func msg(_ msg: String) {
+        if consoleMode {
+            log(msg)
+            FileHandle.standardError.write(Data("\(msg)\n".utf8))
+            return
+        }
         Task { @MainActor in
             self.log(msg)
             self.dialog(
@@ -36,7 +53,11 @@ class Log: ObservableObject {
     var logdata = "\(ProcessInfo.processInfo.operatingSystemVersionString)\n"
 
     func log(_ str: String, isError: Bool = false) {
-        print(str)
+        if !consoleMode {
+            print(str)
+        } else if verbose && !isError {
+            FileHandle.standardError.write(Data("\(str)\n".utf8))
+        }
         if isError {
             logdata.append("ERROR: ")
         }

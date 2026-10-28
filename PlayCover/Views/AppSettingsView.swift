@@ -187,7 +187,6 @@ struct KeymappingView: View {
     }
 }
 
-// swiftlint:disable:next type_body_length
 struct GraphicsView: View {
     @Binding var settings: AppSettings
     @State var customWidth = 1920
@@ -221,16 +220,13 @@ struct GraphicsView: View {
                     Text("settings.picker.iosDevice")
                     Spacer()
                     Picker("", selection: $settings.settings.iosDeviceModel) {
-                        Text("iPad Pro (12.9-inch) (1st gen) | A9X | 4GB").tag("iPad6,7")
-                        Text("iPad Pro (12.9-inch) (3rd gen) | A12X | 4GB").tag("iPad8,6")
-                        Text("iPad Pro (12.9-inch) (5th gen) | M1 | 8GB").tag("iPad13,8")
-                        Text("iPad Pro (12.9-inch) (6th gen) | M2 | 8GB").tag("iPad14,5")
-                        Text("iPad Pro (13-inch) (7th gen) | M4 | 8GB").tag("iPad16,6")
+                        ForEach(IOSDevice.iPads) { device in
+                            Text(device.label).tag(device.id)
+                        }
                         Divider()
-                        Text("iPhone 13 Pro Max | A15 | 6GB").tag("iPhone14,3")
-                        Text("iPhone 14 Pro Max | A16 | 6GB").tag("iPhone15,3")
-                        Text("iPhone 15 Pro Max | A17 Pro | 8GB").tag("iPhone16,2")
-                        Text("iPhone 16 Pro Max | A18 Pro | 8GB").tag("iPhone17,2")
+                        ForEach(IOSDevice.iPhones) { device in
+                            Text(device.label).tag(device.id)
+                        }
                     }
                     .frame(width: 250)
                 }
@@ -430,97 +426,17 @@ struct GraphicsView: View {
     }
 
     func setResolution() {
-        var width: Int
-        var height: Int
+        var updated = settings.settings
+        updated.applyResolutionPreset(customWidth: customWidth, customHeight: customHeight)
+        updated.customScaler = customScaler
+        settings.settings = updated
 
-        switch settings.settings.resolution {
-        // Adaptive resolution = Auto
-        case 1:
-            let resolution = AppSettings.autoResolution()
-            width = resolution.width
-            height = resolution.height
-        // Adaptive resolution = 1080p
-        case 2:
-            height = 1080
-            width = getWidthFromAspectRatio(height)
-        // Adaptive resolution = 1440p
-        case 3:
-            height = 1440
-            width = getWidthFromAspectRatio(height)
-        // Adaptive resolution = 4K
-        case 4:
-            height = 2160
-            width = getWidthFromAspectRatio(height)
-        // Adaptive resolution = Custom
-        case 5:
-            width = customWidth
-            height = customHeight
-        // Adaptive resolution = Off
-        default:
-            height = 1080
-            width = 1920
-        }
-
-        settings.settings.windowWidth = width
-        settings.settings.windowHeight = height
-        settings.settings.customScaler = customScaler
-
-        showResolutionWarning = Double(width * height) * customScaler >= 2621440 * 2.0
         // Tends to crash when the number of pixels exceeds that
+        showResolutionWarning = updated.exceedsHighResolutionThreshold
     }
 
-    func getWidthFromAspectRatio(_ height: Int) -> Int {
-        var widthRatio: Int
-        var heightRatio: Int
-
-        switch settings.settings.aspectRatio {
-        case 0:
-            widthRatio = 4
-            heightRatio = 3
-        case 1:
-            widthRatio = 16
-            heightRatio = 9
-        case 2:
-            widthRatio = 16
-            heightRatio = 10
-        default:
-            widthRatio = 16
-            heightRatio = 9
-        }
-        return (height / heightRatio) * widthRatio
-    }
     func setAspectRatioForResizableWindow() {
-        var widthRatio = 0
-        var heightRatio = 0
-
-        switch settings.settings.resizableAspectRatioType {
-        // Aspect ratio = Free
-        case 0:
-            widthRatio = 0
-            heightRatio = 0
-        // Aspect ratio = Custom
-        case 1:
-            widthRatio = settings.settings.resizableAspectRatioWidth
-            heightRatio = settings.settings.resizableAspectRatioHeight
-        // Aspect ratio = 4:3
-        case 2:
-            widthRatio = 4
-            heightRatio = 3
-        // Aspect ratio = 16:9
-        case 3:
-            widthRatio = 16
-            heightRatio = 9
-        // Aspect ratio = 16:10
-        case 4:
-            widthRatio = 16
-            heightRatio = 10
-        default:
-            widthRatio = 16
-            heightRatio = 9
-        }
-
-        settings.settings.resizableAspectRatioWidth = widthRatio
-        settings.settings.resizableAspectRatioHeight = heightRatio
+        settings.settings.applyResizableAspectRatioPreset()
     }
 }
 

@@ -70,6 +70,30 @@ You can download stable releases [here](https://github.com/PlayCover/PlayCover/r
 
 To learn how to setup and use PlayCover, visit the documentation [here](https://playcover.github.io/PlayBook).
 
+### Command line interface
+
+Every action of the PlayCover window, and every per-app setting, is also available from the terminal:
+
+```sh
+/Applications/PlayCover.app/Contents/MacOS/PlayCover link   # installs a `playcover` command
+playcover install ~/Downloads/Game.ipa --device ipad-pro-13-m5 --resolution 1440p
+playcover launch com.example.game --keymapping off          # one-off override, restored on quit
+playcover clear com.example.game --playchain --yes
+```
+
+See [docs/CLI.md](docs/CLI.md) for the full reference.
+
+### Supported iOS devices
+
+Apps can be told they run on any of these devices (Settings › Graphics › iOS device, or `--device`):
+iPad Pro 12.9" (1st, 3rd, 5th and 6th gen), iPad Pro 13" M4 and **M5**, iPhone 13/14/15/16 Pro Max,
+**iPhone 17, iPhone Air, iPhone 17 Pro and iPhone 17 Pro Max**.
+
+### Building from source
+
+PlayCover builds with Xcode 16 (macOS 15), Xcode 26 (macOS 26 Tahoe) and Xcode 27 (macOS 27).
+See [docs/BUILDING.md](docs/BUILDING.md).
+
 ### Homebrew Cask
 We host a [Homebrew](https://brew.sh) tap with the [PlayCover cask](https://github.com/PlayCover/homebrew-playcover/blob/master/Casks/playcover-community.rb). To install from it run:
 

@@ -36,17 +36,19 @@ jobs:
         run: carthage update --use-xcframeworks
 
       - name: Build PlayCover (Release, ad-hoc signed)
+        # DerivedData lives outside the checkout so the SwiftLint build phase does not lint package sources
         run: |
-          set -o pipefail
           xcodebuild -scheme PlayCover -configuration Release \
-            -destination 'generic/platform=macOS' -derivedDataPath build \
+            -destination 'generic/platform=macOS' -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
             ENABLE_HARDENED_RUNTIME=NO \
-            build | tail -n 50
+            build > "$RUNNER_TEMP/build.log" 2>&1 \
+            || { grep -E "error:" "$RUNNER_TEMP/build.log" | sort -u; tail -n 40 "$RUNNER_TEMP/build.log"; exit 1; }
+          tail -n 5 "$RUNNER_TEMP/build.log"
 
       - name: Smoke test the command line interface
         run: |
-          PC=build/Build/Products/Release/PlayCover.app/Contents/MacOS/PlayCover
+          PC="$RUNNER_TEMP/DerivedData/Build/Products/Release/PlayCover.app/Contents/MacOS/PlayCover"
           "$PC" version
           "$PC" help > /dev/null
           "$PC" devices

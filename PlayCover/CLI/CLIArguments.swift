@@ -38,7 +38,9 @@ struct CLIArguments {
     ///   - arguments: Arguments after the command name
     ///   - flagNames: Options that never take a value
     ///   - valueNames: Options that require a value
-    init(_ arguments: [String], flagNames: Set<String>, valueNames: Set<String>) throws {
+    ///   - booleanNames: Options among `valueNames` whose value is on/off; a bare `--name` means on
+    init(_ arguments: [String], flagNames: Set<String>, valueNames: Set<String>,
+         booleanNames: Set<String> = []) throws {
         var index = 0
         var onlyPositionals = false
         while index < arguments.count {
@@ -68,19 +70,37 @@ struct CLIArguments {
                 }
                 flags.insert(name)
             } else if valueNames.contains(name) {
-                if let inlineValue = inlineValue {
-                    values[name] = inlineValue
-                } else if index < arguments.count {
-                    values[name] = arguments[index]
+                let next = index < arguments.count ? arguments[index] : nil
+                let (value, consumedNext) = try CLIArguments.value(for: name, inline: inlineValue, next: next,
+                                                                   isBoolean: booleanNames.contains(name))
+                values[name] = value
+                if consumedNext {
                     index += 1
-                } else {
-                    throw CLIError.usage("--\(name) requires a value")
                 }
             } else {
                 throw CLIError.usage("Unknown option '\(argument)'. Run 'playcover help' for usage.")
             }
             order.append(name)
         }
+    }
+
+    /// Picks the value of a `--name` option. A following argument is never taken when it is itself an option,
+    /// and a boolean option only takes it when it is an on/off word, defaulting to on.
+    private static func value(for name: String, inline: String?, next: String?,
+                              isBoolean: Bool) throws -> (value: String, consumedNext: Bool) {
+        if let inline = inline {
+            return (inline, false)
+        }
+        if isBoolean {
+            if let next = next, CLIValue.isBool(next) {
+                return (next, true)
+            }
+            return ("on", false)
+        }
+        guard let next = next, !next.hasPrefix("--") else {
+            throw CLIError.usage("--\(name) requires a value")
+        }
+        return (next, true)
     }
 
     private static let shortNames = ["y": "yes", "h": "help", "v": "verbose"]
@@ -109,11 +129,18 @@ struct CLIArguments {
 
 // MARK: - Value parsing
 enum CLIValue {
+    private static let trueWords: Set = ["1", "on", "yes", "true", "enable", "enabled"]
+    private static let falseWords: Set = ["0", "off", "no", "false", "disable", "disabled"]
+
+    static func isBool(_ value: String) -> Bool {
+        trueWords.contains(value.lowercased()) || falseWords.contains(value.lowercased())
+    }
+
     static func bool(_ value: String, for name: String) throws -> Bool {
         switch value.lowercased() {
-        case "1", "on", "yes", "true", "enable", "enabled":
+        case let word where trueWords.contains(word):
             return true
-        case "0", "off", "no", "false", "disable", "disabled":
+        case let word where falseWords.contains(word):
             return false
         default:
             throw CLIError.usage("--\(name) expects on or off, got '\(value)'")

@@ -83,6 +83,8 @@ extension CLISettingOption {
     static let all: [CLISettingOption] = keymappingOptions + graphicsOptions + fixesOptions + miscOptions
 
     static let names = Set(all.map { $0.name })
+    /// Options that take on/off, so a bare `--name` can mean on
+    static let booleanNames = Set(all.filter { $0.valueHint == "on|off" }.map { $0.name })
 
     static func named(_ name: String) -> CLISettingOption? {
         all.first { $0.name == name }

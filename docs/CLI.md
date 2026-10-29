@@ -71,7 +71,9 @@ If a name matches more than one app, the command fails and lists the bundle iden
 
 All commands accept `--help` (command help) and `--verbose` (print PlayCover's internal log lines to stderr).
 Boolean values accept `on/off`, `true/false`, `yes/no`, `1/0`, `enabled/disabled`. Options can be written as
-`--name value` or `--name=value`; `--` ends option parsing.
+`--name value` or `--name=value`; `--` ends option parsing. An on/off option given without a value means `on`
+(`--hide-title-bar` is `--hide-title-bar on`). Other options never take a following `--option` as their value, so
+a forgotten value is reported as `--device requires a value`.
 
 ### list
 

@@ -117,8 +117,10 @@ enum PlayCoverCLI {
 
         do {
             let valueNames = command.values.union(command.acceptsSettings ? CLISettingOption.names : [])
+            let booleanNames = valueNames.intersection(CLISettingOption.booleanNames.union(["playtools"]))
             let parsed = try CLIArguments(Array(arguments.dropFirst()),
-                                          flagNames: command.flags.union(commonFlags), valueNames: valueNames)
+                                          flagNames: command.flags.union(commonFlags), valueNames: valueNames,
+                                          booleanNames: booleanNames)
             if parsed.has("help") {
                 CLITerminal.output(help(for: command.name))
                 return 0

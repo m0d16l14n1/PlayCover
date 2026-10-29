@@ -193,6 +193,7 @@ extension CLISettingOption {
         toggle("limit-motion-updates", .misc, "Limit motion sensor update frequency", \.limitMotionUpdateFrequency),
         toggle("ignore-unity-keyboard-error", .misc, "Ignore Unity keyboard initialization error",
                \.ignoreUnityKeyboardInitializationError),
+        toggle("automation", .misc, "Allow 'playcover automate' to inspect and drive the app", \.automation),
         discord("discord", "Discord activity", valueHint: "on|off") {
             $0.enable = try CLIValue.bool($1, for: "discord")
         },

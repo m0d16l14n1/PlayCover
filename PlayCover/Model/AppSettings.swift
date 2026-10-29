@@ -52,6 +52,8 @@ struct AppSettingsData: Codable {
     var resizableAspectRatioHeight = 0
     var blockSleepSpamming = false
     var ignoreUnityKeyboardInitializationError = false
+    /// Lets `playcover automate` inspect and drive the app (PlayTools' automation server)
+    var automation = false
 
     init() {}
 
@@ -95,6 +97,7 @@ struct AppSettingsData: Codable {
         blockSleepSpamming = try container.decodeIfPresent(Bool.self, forKey: .blockSleepSpamming) ?? false
         ignoreUnityKeyboardInitializationError = try container.decodeIfPresent(
             Bool.self, forKey: .ignoreUnityKeyboardInitializationError) ?? false
+        automation = try container.decodeIfPresent(Bool.self, forKey: .automation) ?? false
     }
 }
 

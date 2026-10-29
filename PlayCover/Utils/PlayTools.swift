@@ -80,8 +80,10 @@ class PlayTools {
 
     /// Whether ~/Library/Frameworks holds the same PlayTools binary that is bundled with PlayCover
     static func isSystemCopyCurrent() -> Bool {
-        let bundledBinary = bundledPlayToolsFramework.appendingPathComponent("PlayTools")
-        return FileManager.default.contentsEqual(atPath: bundledBinary.path, andPath: playToolsPath.path)
+        // In the versioned framework both are the same relative symlink: compare the binaries they point at
+        let bundledBinary = bundledPlayToolsFramework.appendingPathComponent("PlayTools").resolvingSymlinksInPath()
+        return FileManager.default.contentsEqual(atPath: bundledBinary.path,
+                                                 andPath: playToolsPath.resolvingSymlinksInPath().path)
     }
 
     static func installInIPA(_ exec: URL) async throws {

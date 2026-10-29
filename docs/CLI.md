@@ -13,7 +13,7 @@ installed and shares its library, settings and PlayChain/KeyCover data.
 - [Commands](#commands)
   - [list](#list) · [info](#info) · [devices](#devices) · [launch](#launch) · [settings](#settings)
   - [install](#install) · [export](#export) · [uninstall](#uninstall) · [clear](#clear)
-  - [playtools](#playtools) · [plugins](#plugins) · [link](#link) · [help / version](#help--version)
+  - [playtools](#playtools) · [plugins](#plugins) · [automate](#automate) · [link](#link) · [help / version](#help--version)
 - [Setting options](#setting-options)
 - [Output, exit codes and scripting](#output-exit-codes-and-scripting)
 - [KeyCover and PlayChain](#keycover-and-playchain)
@@ -272,6 +272,78 @@ playcover plugins <app> remove <name>
 Manages the custom dylib plugins that PlayTools loads into the app (Misc tab › Custom plugins). Only available for
 apps with PlayTools injected. Plugins run inside the game with its privileges: only add code you trust.
 
+### automate
+
+```bash
+playcover automate <app> <action> [arguments]
+```
+
+Inspects and drives a **running** app: reads what is on its screen, takes screenshots, taps, swipes and types. It
+talks to a small server PlayTools starts inside the app, so the app needs PlayTools and must run with automation
+allowed:
+
+```bash
+playcover launch "My Game" --automation          # allowed for this launch only
+playcover settings set "My Game" --automation    # always (Settings › Misc › Allow automation)
+```
+
+| Action | What it does |
+| --- | --- |
+| `info [--json]` | Window size in points, scale, macOS window number, iOS device reported, focused field |
+| `tree [--depth N] [--all] [--json]` | The UI as a tree: views and accessibility elements with class, text, label, value, identifier, traits and frame. Visible nodes only unless `--all` |
+| `find [<text>] [--label L] [--id I] [--class C] [--path P] [--exact] [--json]` | Visible nodes that match. `<text>` matches a view's text or an element's label or value; matching is a case-insensitive substring unless `--exact` |
+| `tap <x> <y>` / `tap [<text>] [query]` | Taps a point, or the center of the first match (preferring buttons and other controls) |
+| `longpress <x> <y>` / `longpress [<text>] [query] [--duration S]` | Touches and holds (default 1 s) |
+| `swipe <x1> <y1> <x2> <y2> [--duration S]` | Drags a finger from one point to another (default 0.3 s) |
+| `type <text> [--replace]` | Types into the focused text field (`--replace`: instead of what it holds). Waits up to 1 s for a field a tap just focused |
+| `key return\|tab\|delete` | Return submits a text field as the Return key does |
+| `screenshot <file.png> [--scale N]` | The window as the app renders it (no permission needed; Metal content such as Unity or Unreal games comes out black) |
+| `screenshot <file.png> --window` | The real window as it appears on screen, Metal included (macOS asks once for Screen Recording permission for your terminal) |
+| `wait [<text>] [query] [--gone] [--timeout S]` | Waits until a matching node appears (or with `--gone`, disappears); default timeout 30 s, exit status 1 on timeout |
+| `run <script>` | Runs actions from a file, one per line, as written after `playcover automate <app>`; `sleep S` pauses, `#` starts a comment, quotes work as in a shell. Stops at the first failure and names the line |
+
+Coordinates are **points in the app's window** (top-left origin), the same space `tree` and `find` report frames in;
+`info` gives the window size. A path such as `0.0.3.a1` names a node: numbers are subviews, `aN` the accessibility
+elements of the node before it (how SwiftUI and other non-UIKit interfaces expose their text and buttons).
+
+Touches go through PlayTools' touch injection, the same one keymapping uses, so the app sees real touches.
+Taps and swipes return once the app had a moment to react, so a script can tap a field and type right after.
+
+```bash
+# What is on screen, then press a button by its title and wait for the next screen
+playcover automate "My Game" tree
+playcover automate "My Game" tap "Start"
+playcover automate "My Game" wait "Loading" --gone --timeout 60
+
+# Fill in a form from a script
+cat > login.txt <<'SCRIPT'
+wait "Email" --timeout 30
+tap --id emailField
+type "me@example.com" --replace
+key return
+wait "Welcome" --timeout 20
+SCRIPT
+playcover automate "My Game" run login.txt
+
+# Games drawn with Metal have no views to read: use window screenshots and coordinates
+playcover automate "My Game" screenshot shot.png --window
+playcover automate "My Game" tap 512 300
+```
+
+Scripts are plain text and are not shell scripts: variables are not expanded. For logic (loops, conditions, reading
+values) call `playcover automate` from a shell script and use `find --json` / `tree --json`.
+
+**Security.** The server listens on `127.0.0.1` only, on a random port, and every request needs a random token that
+changes at each launch. Port and token are in `~/Library/Containers/io.playcover.PlayCover/Automation/<bundle id>.json`
+(readable only by you), which is removed when the app quits. Any program running as your user can read that file
+and drive the app while it runs with automation allowed, so leave the setting off when you do not use it.
+
+The protocol is one JSON object per line over TCP, documented in PlayTools' README, if you want to drive apps from
+another language.
+
+To try it out, `scripts/automation-fixture/build.sh` builds a small test app with a button, a text field, gesture
+areas and a SwiftUI button that each show what happened, and `scripts/automation-fixture/flow.txt` is a script for it.
+
 ### link
 
 ```bash
@@ -345,6 +417,7 @@ a warning is printed when width × height × scale is high enough to crash some 
 | `--root-work-dir` | on/off | Start app at root directory |
 | `--limit-motion-updates` | on/off | Limit motion sensor update frequency |
 | `--ignore-unity-keyboard-error` | on/off | Ignore Unity keyboard initialization error |
+| `--automation` | on/off | Allow automation ([automate](#automate)) |
 | `--discord` | on/off | Enable Discord activity |
 | `--discord-app-id`, `--discord-details`, `--discord-state`, `--discord-image` | text | Custom Discord activity fields |
 

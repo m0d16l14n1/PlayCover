@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2658A639E1B84CCF885B02E7 /* CLIAutomateCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4538A5F30AB4E37B15F5450 /* CLIAutomateCommand.swift */; };
 		342787552E787EBB003A3C2F /* Keymapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342787542E787EB9003A3C2F /* Keymapping.swift */; };
 		3447B5E52E28B46800FAA22F /* KeymapViewVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3447B5E42E28B46800FAA22F /* KeymapViewVM.swift */; };
 		34775E752D493B59001586C2 /* CachedAsyncImageWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34775E742D493B54001586C2 /* CachedAsyncImageWrapper.swift */; };
@@ -105,6 +106,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F4538A5F30AB4E37B15F5450 /* CLIAutomateCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIAutomateCommand.swift; sourceTree = "<group>"; };
 		342787542E787EB9003A3C2F /* Keymapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keymapping.swift; sourceTree = "<group>"; };
 		3447B5E42E28B46800FAA22F /* KeymapViewVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapViewVM.swift; sourceTree = "<group>"; };
 		34775E742D493B54001586C2 /* CachedAsyncImageWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedAsyncImageWrapper.swift; sourceTree = "<group>"; };
@@ -470,6 +472,7 @@
 				D17891D9118E695BFCBC2D4F /* CLISettingOptions.swift */,
 				38AD4C3C9764A6F2BFE066C5 /* CLIAppCommands.swift */,
 				C8ABEB1142F9FD6D773458EA /* CLILaunchCommand.swift */,
+				F4538A5F30AB4E37B15F5450 /* CLIAutomateCommand.swift */,
 				AFBF7D72D2D500EA50439AD7 /* CLIInstallCommands.swift */,
 			);
 			path = CLI;
@@ -675,6 +678,7 @@
 				67E1F308C26EFB63637A8E29 /* CLISettingOptions.swift in Sources */,
 				192BE392B5B5BDEA96E23927 /* CLIAppCommands.swift in Sources */,
 				D35370D6E20344D225013DEE /* CLILaunchCommand.swift in Sources */,
+				2658A639E1B84CCF885B02E7 /* CLIAutomateCommand.swift in Sources */,
 				B2BBA264CEE3FE7DC5B01C80 /* CLIInstallCommands.swift in Sources */,
 				91A8E873499849EF54887317 /* IOSDevice.swift in Sources */,
 				6E66B0D3289F5A010099B907 /* StoreAppView.swift in Sources */,

@@ -63,6 +63,10 @@ enum PlayCoverCLI {
                    + " | plugins <app> remove <name>",
                    summary: "Manage custom dylib plugins loaded by PlayTools",
                    flags: [], values: [], acceptsSettings: false, run: CLIAppCommands.plugins),
+        CLICommand(name: "automate", usage: CLIAutomateCommand.usage,
+                   summary: "Inspect and drive a running app: view tree, screenshots, taps, swipes, typing",
+                   flags: CLIAutomateCommand.flags, values: CLIAutomateCommand.values, acceptsSettings: false,
+                   run: CLIAutomateCommand.run),
         CLICommand(name: "link", usage: "link [--dir <directory>]",
                    summary: "Install a 'playcover' shell command (default ~/.local/bin)",
                    flags: [], values: ["dir"], acceptsSettings: false, run: CLIInstallCommands.link),
@@ -210,6 +214,9 @@ extension PlayCoverCLI {
         }
         if let topic = topic, let command = commands.first(where: { $0.name == topic }) {
             var text = "usage: playcover \(command.usage)\n\n\(command.summary)\n"
+            if command.name == "automate" {
+                text += CLIAutomateCommand.help
+            }
             if command.acceptsSettings {
                 text += "\n" + settingOptionsHelp()
             }

@@ -1,0 +1,13 @@
+# Example automation script: fill the field, press buttons, check the result
+wait "Tap me" --timeout 10
+tap "Tap me"
+tap --id tapButton
+tap --id field
+type 'scripted "input"' --replace
+key return
+wait "Typed: scripted \"input\" (return)" --exact --timeout 5
+swipe 740 990 460 990 --duration 0.25
+sleep 0.5
+wait "Gesture: swipe left" --timeout 5
+tap "SwiftUI button"
+wait "SwiftUI taps:"

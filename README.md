@@ -83,6 +83,11 @@ playcover clear com.example.game --playchain --yes
 
 See [docs/CLI.md](docs/CLI.md) for the full reference.
 
+### Automation
+
+`playcover automate` reads what a running app shows (view and accessibility tree, screenshots) and taps, swipes and
+types in it, by coordinates or by element text, also from script files. See [docs/CLI.md](docs/CLI.md#automate).
+
 ### Supported iOS devices
 
 Apps can be told they run on any of these devices (Settings › Graphics › iOS device, or `--device`):

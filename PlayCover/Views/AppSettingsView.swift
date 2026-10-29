@@ -668,6 +668,16 @@ struct MiscView: View {
                         .help("settings.toggle.ignoreUnityKeyboardInitializationError.help")
                     Spacer()
                 }
+                HStack {
+                    Toggle(NSLocalizedString("settings.toggle.automation", value: "Allow automation",
+                                             comment: ""),
+                           isOn: $settings.settings.automation)
+                        .disabled(!(hasPlayTools ?? true))
+                        .help(NSLocalizedString("settings.toggle.automation.help",
+                                                value: "Lets the 'playcover automate' command inspect the app's "
+                                                + "screen and tap, swipe and type in it", comment: ""))
+                    Spacer()
+                }
                 CustomDylibView(app: app,
                                 showCustomPluginWarning: $showCustomPluginWarning,
                                 hasShownCustomPluginWarning: $hasShownCustomPluginWarning,

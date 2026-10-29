@@ -138,6 +138,9 @@ enum PlayCoverCLI {
             }
             Log.shared.verbose = parsed.has("verbose")
             CLITerminal.captureStrayOutput(verbose: Log.shared.verbose)
+            for message in UpdateScheme.moveLibraryOutOfContainer() {
+                CLITerminal.printError("note: " + message)
+            }
             try await command.run(parsed)
             return Log.shared.errorCount == 0 ? 0 : 1
         } catch let error as CLIError {

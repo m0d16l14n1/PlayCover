@@ -89,6 +89,13 @@ Apps can be told they run on any of these devices (Settings › Graphics › iOS
 iPad Pro 12.9" (1st, 3rd, 5th and 6th gen), iPad Pro 13" M4 and **M5**, iPhone 13/14/15/16 Pro Max,
 **iPhone 17, iPhone Air, iPhone 17 Pro and iPhone 17 Pro Max**.
 
+### Library location
+
+Installed apps and their settings, keymaps and PlayChain live in `~/Library/Application Support/io.playcover.PlayCover`.
+They used to be in `~/Library/Containers/io.playcover.PlayCover`, which made macOS ask whether each game may
+"access data from other apps" (on macOS 26 at every launch); PlayCover moves an existing library automatically.
+See [docs/LIBRARY.md](docs/LIBRARY.md).
+
 ### Building from source
 
 PlayCover builds with Xcode 16 (macOS 15), Xcode 26 (macOS 26 Tahoe) and Xcode 27 (macOS 27).

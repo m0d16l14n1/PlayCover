@@ -81,11 +81,10 @@ class PlayApp: BaseApp {
             // Install PlugIns/localizations before signing so the bundle is fully
             // assembled before its signature is sealed over its contents.
             // If the app does not have PlayTools, do not install PlugIns
-            if hasPlayTools() {
-                try PlayTools.installPluginInIPA(url)
-            }
+            // Copying a changed plugin breaks the code seal, so sign again then too
+            let pluginsChanged = try hasPlayTools() && PlayTools.installPluginInIPA(url)
 
-            if try !Entitlements.areEntitlementsValid(app: self) {
+            if try pluginsChanged || !Entitlements.areEntitlementsValid(app: self) {
                 sign()
             }
 
@@ -339,18 +338,22 @@ extension PlayApp {
 
     func sign() {
         do {
-            let tmpDir = FileManager.default.temporaryDirectory
-            let tmpEnts = tmpDir
-                .appendingEscapedPathComponent(ProcessInfo().globallyUniqueString)
-                .appendingPathExtension("plist")
-            let conf = try Entitlements.composeEntitlements(self)
-            try conf.store(tmpEnts)
-            try Shell.signAppWith(executable, entitlements: tmpEnts)
-            try FileManager.default.removeItem(at: tmpEnts)
+            try signApp()
         } catch {
             print(error)
             Log.shared.error(error)
         }
+    }
+
+    func signApp() throws {
+        let tmpDir = FileManager.default.temporaryDirectory
+        let tmpEnts = tmpDir
+            .appendingEscapedPathComponent(ProcessInfo().globallyUniqueString)
+            .appendingPathExtension("plist")
+        let conf = try Entitlements.composeEntitlements(self)
+        try conf.store(tmpEnts)
+        try Shell.signAppWith(executable, entitlements: tmpEnts)
+        try FileManager.default.removeItem(at: tmpEnts)
     }
 }
 

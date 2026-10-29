@@ -83,10 +83,9 @@ enum CLILaunchCommand {
 
         app.settings.sync()
 
-        if app.hasPlayTools() {
-            try PlayTools.installPluginInIPA(app.url)
-        }
-        if try !Entitlements.areEntitlementsValid(app: app) {
+        // Copying a changed plugin breaks the code seal, so sign again then too
+        let pluginsChanged = try app.hasPlayTools() && PlayTools.installPluginInIPA(app.url)
+        if try pluginsChanged || !Entitlements.areEntitlementsValid(app: app) {
             app.sign()
         }
         if try !app.isInfoPlistSigned() {

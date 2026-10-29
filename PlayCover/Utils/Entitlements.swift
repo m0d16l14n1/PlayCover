@@ -123,9 +123,18 @@ class Entitlements {
             sandboxProfile.append(contentsOf: PlayRules.buildRules(rules: rules.bypass ?? [], bundleID: bundleID))
         }
 
+        // Last, so neither the bypass rules nor a custom default.yaml can take away the app's own bundle and the
+        // settings, keymaps and PlayChain PlayTools reads from the library
+        sandboxProfile.append(libraryRule)
+
         base["com.apple.security.temporary-exception.sbpl"] = sandboxProfile
 
         return base
+    }
+
+    private static var libraryRule: String {
+        "(allow file* file-read* file-write* file-write-data file-read-metadata file-ioctl "
+            + "(subpath \"\(PlayTools.playCoverContainer.path)\"))"
     }
 
     private static func copyEntitlements(exec: URL) throws -> String {

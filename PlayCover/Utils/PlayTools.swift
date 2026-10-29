@@ -27,10 +27,12 @@ class PlayTools {
         .appendingPathComponent("PlayTools")
         .appendingPathExtension("framework")
 
+    /// PlayCover's library: installed apps, their settings, keymaps, entitlements and PlayChain. It used to be
+    /// ~/Library/Containers/io.playcover.PlayCover (see UpdateScheme.legacyLibrary); PlayTools reads the same path.
     public static var playCoverContainer: URL {
         let playCoverPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library")
-            .appendingPathComponent("Containers")
+            .appendingPathComponent("Application Support")
             .appendingPathComponent("io.playcover.PlayCover")
         if !FileManager.default.fileExists(atPath: playCoverPath.path) {
             do {
@@ -110,13 +112,18 @@ class PlayTools {
         })
     }
 
-    static func installPluginInIPA(_ payload: URL) throws {
+    /// Copies PlayTools' localizations and component bundles into the app. Only what differs from PlayCover's copy
+    /// is replaced: a copied file breaks the app's code seal until it is signed again.
+    /// - Returns: Whether anything was copied, so the app has to be signed again
+    @discardableResult
+    static func installPluginInIPA(_ payload: URL) throws -> Bool {
+        var changed = false
         let allFiles = try FileManager.default.contentsOfDirectory(
             at: bundledPlayToolsFramework, includingPropertiesForKeys: [])
         for localizationDirectory in allFiles where localizationDirectory.pathExtension == "lproj" {
-            _ = try copyAsset(target: payload,
-                              directoryName: localizationDirectory.lastPathComponent,
-                              component: "Playtools", pathExtension: "strings")
+            changed = try copyAsset(target: payload,
+                                    directoryName: localizationDirectory.lastPathComponent,
+                                    component: "Playtools", pathExtension: "strings") || changed
         }
 
         let bundledPlayToolsResources = bundledPlayToolsFramework
@@ -127,17 +134,19 @@ class PlayTools {
             let allFiles = try FileManager.default.contentsOfDirectory(
                 at: bundledPlayToolsResources, includingPropertiesForKeys: [])
             for localizationDirectory in allFiles where localizationDirectory.pathExtension == "lproj" {
-                _ = try copyAsset(source: bundledPlayToolsResources,
-                                  target: payload,
-                                  directoryName: localizationDirectory.lastPathComponent,
-                                  component: "Playtools", pathExtension: "strings")
+                changed = try copyAsset(source: bundledPlayToolsResources,
+                                        target: payload,
+                                        directoryName: localizationDirectory.lastPathComponent,
+                                        component: "Playtools", pathExtension: "strings") || changed
             }
         }
 
-        try installComponentBundles(into: payload)
+        return try installComponentBundles(into: payload) || changed
     }
 
-    static func installComponentBundles(into payload: URL) throws {
+    /// - Returns: Whether a bundle was copied
+    @discardableResult
+    static func installComponentBundles(into payload: URL) throws -> Bool {
         let pluginsSource = bundledPlayToolsFramework.appendingPathComponent("PlugIns")
         let pluginsTarget = payload.appendingPathComponent("PlugIns")
         try FileManager.default.createDirectory(at: pluginsTarget, withIntermediateDirectories: true)
@@ -147,19 +156,26 @@ class PlayTools {
             .map { pluginsSource.appendingPathComponent($0) }
             .filter { $0.pathExtension == "bundle" }
 
+        var changed = false
         for bundleSource in bundles {
             let bundleTarget = pluginsTarget.appendingPathComponent(bundleSource.lastPathComponent)
+            if FileManager.default.bundleMatches(bundleSource, bundleTarget) {
+                continue
+            }
             if FileManager.default.fileExists(atPath: bundleTarget.path) {
                 try FileManager.default.removeItem(at: bundleTarget)
             }
             try FileManager.default.copyItem(at: bundleSource, to: bundleTarget)
             try bundleTarget.fixExecutable()
             try Shell.signMacho(bundleTarget)
+            changed = true
         }
+        return changed
     }
 
+    /// - Returns: Whether the file was copied (false when the app already has the same file)
     static func copyAsset(source: URL = bundledPlayToolsFramework, target: URL, directoryName: String,
-                          component: String, pathExtension: String) throws -> URL {
+                          component: String, pathExtension: String) throws -> Bool {
         let directory = target.appendingPathComponent(directoryName)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
@@ -171,13 +187,16 @@ class PlayTools {
                     .appendingPathComponent(directoryName)
                     .appendingPathComponent(component)
                     .appendingPathExtension(pathExtension)
+        if FileManager.default.contentsEqual(atPath: source.path, andPath: target.path) {
+            return false
+        }
         do {
             try FileManager.default.copyItem(at: source, to: target)
         } catch {
             try FileManager.default.removeItem(at: target)
             try FileManager.default.copyItem(at: source, to: target)
         }
-        return target
+        return true
     }
 
     static func injectInIPA(_ exec: URL, payload: URL) throws {

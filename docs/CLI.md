@@ -63,7 +63,7 @@ Commands that act on an installed app take `<app>`, which can be:
 | --- | --- |
 | Bundle identifier (exact) | `com.miHoYo.GenshinImpact` |
 | App name, case-insensitive | `"Genshin Impact"` |
-| Path to the installed bundle | `"~/Library/Application Support/io.playcover.PlayCover/Applications/com.miHoYo.GenshinImpact.app"` |
+| Path to the installed bundle | `~/Library/Containers/io.playcover.PlayCover/Applications/com.miHoYo.GenshinImpact.app` |
 | Path to its alias (the copy in Launchpad), or any bundle of the app | `"~/Applications/PlayCover/Genshin Impact.app"` |
 
 If a name matches more than one app, the command fails and lists the bundle identifiers to use instead.

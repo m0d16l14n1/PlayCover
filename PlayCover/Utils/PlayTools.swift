@@ -27,12 +27,10 @@ class PlayTools {
         .appendingPathComponent("PlayTools")
         .appendingPathExtension("framework")
 
-    /// PlayCover's library: installed apps, their settings, keymaps, entitlements and PlayChain. It used to be
-    /// ~/Library/Containers/io.playcover.PlayCover (see UpdateScheme.legacyLibrary); PlayTools reads the same path.
     public static var playCoverContainer: URL {
         let playCoverPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library")
-            .appendingPathComponent("Application Support")
+            .appendingPathComponent("Containers")
             .appendingPathComponent("io.playcover.PlayCover")
         if !FileManager.default.fileExists(atPath: playCoverPath.path) {
             do {

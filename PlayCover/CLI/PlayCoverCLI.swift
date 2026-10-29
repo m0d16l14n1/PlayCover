@@ -138,7 +138,7 @@ enum PlayCoverCLI {
             }
             Log.shared.verbose = parsed.has("verbose")
             CLITerminal.captureStrayOutput(verbose: Log.shared.verbose)
-            for message in UpdateScheme.moveLibraryOutOfContainer() {
+            for message in UpdateScheme.moveLibraryBackToContainer() {
                 CLITerminal.printError("note: " + message)
             }
             try await command.run(parsed)

@@ -126,31 +126,31 @@ class UpdateScheme {
 
 // MARK: - Library location
 extension UpdateScheme {
-    /// Where the library used to live. ~/Library/Containers/io.playcover.PlayCover is a protected app container:
-    /// every game runs from it and PlayTools reads the game's settings, keymaps and PlayChain from it, so macOS asked
-    /// whether the game may "access data from other apps" (on macOS 26 at every launch, as the answer only lasts
-    /// for that process). The library now lives in PlayTools.playCoverContainer instead.
+    /// Where some development builds kept the library, to stop macOS asking whether games may "access data from
+    /// other apps". That did not stop the prompt on macOS 26, so the library is back in PlayTools.playCoverContainer
+    /// and anything those builds moved is moved back.
     static let legacyLibrary = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library")
-        .appendingPathComponent("Containers")
+        .appendingPathComponent("Application Support")
         .appendingPathComponent("io.playcover.PlayCover")
 
-    /// Everything PlayCover keeps in its library. Other files in the legacy folder are left alone.
+    /// Everything PlayCover keeps in its library
     private static let libraryItems = ["Applications", "App Settings", "Entitlements", "Keymapping", "PlayTools",
                                        "CACHE", "Sources.plist", "VERSION"]
 
-    /// Moves PlayCover's items from the legacy library, rebuilds the aliases and re-signs the moved apps so their
-    /// sandbox allows the new location even when started from Launchpad. Items are renamed, never copied, and an
-    /// item that already exists at the new location is never overwritten. Returns what the user should be told.
-    static func moveLibraryOutOfContainer() -> [String] {
+    /// Moves PlayCover's items back from the legacy library, rebuilds the aliases and re-signs the moved apps so
+    /// their sandbox matches the library again, also when started from Launchpad. Items are renamed, never copied,
+    /// and an item that already exists in the library is never overwritten. Returns what the user should be told.
+    static func moveLibraryBackToContainer() -> [String] {
         let library = PlayTools.playCoverContainer
-        // Also repairs configs written before a move, e.g. by an older PlayCover still using the legacy library
+        // Also repairs configs whose files were moved back by hand
         rewriteKeymapConfigs(in: library.appendingPathComponent("Keymapping"))
         let knownApps = knownBundleIdentifiers()
         let legacyChains = legacyChainFiles(of: knownApps)
         guard library.standardizedFileURL != legacyLibrary.standardizedFileURL,
               libraryItems.contains(where: { FileManager.default.fileExists(atPath: legacyItem($0).path) })
                 || !legacyChains.isEmpty else {
+            removeEmptyLegacyFolders()
             return []
         }
 
@@ -161,7 +161,7 @@ extension UpdateScheme {
             || $0.bundleURL?.path.hasPrefix(legacyItem("Applications").path) == true
         }
         if !others.isEmpty {
-            return ["PlayCover's library will move to \(library.path) once PlayCover and its apps are closed"]
+            return ["PlayCover's library will move back to \(library.path) once PlayCover and its apps are closed"]
         }
 
         var conflicts: [String] = []
@@ -169,7 +169,7 @@ extension UpdateScheme {
         for item in libraryItems {
             merge(legacyItem(item), into: library.appendingPathComponent(item), conflicts: &conflicts)
         }
-        // PlayChain also holds files of other tools; take only the chains of PlayCover's apps
+        // Take only the chains of PlayCover's apps
         for chain in legacyChains {
             merge(chain, into: library.appendingPathComponent("PlayChain")
                 .appendingPathComponent(chain.lastPathComponent), conflicts: &conflicts)
@@ -177,7 +177,7 @@ extension UpdateScheme {
         // Before any PlayApp exists: loading a keymap config whose files are missing replaces them with blank keymaps
         rewriteKeymapConfigs(in: library.appendingPathComponent("Keymapping"))
 
-        var messages = ["Moved PlayCover's library to \(library.path)"]
+        var messages = ["Moved PlayCover's library back to \(library.path)"]
         let movedApps = Set(installedApps(in: library.appendingPathComponent("Applications"))).subtracting(appsBefore)
         for app in movedApps.sorted(by: { $0.path < $1.path }) {
             do {
@@ -186,8 +186,9 @@ extension UpdateScheme {
                 messages.append("Could not re-sign \(app.lastPathComponent): \(error.localizedDescription)")
             }
         }
+        removeEmptyLegacyFolders()
         if !conflicts.isEmpty {
-            messages.append("Left in \(legacyLibrary.path) because the new library already has them: "
+            messages.append("Left in \(legacyLibrary.path) because the library already has them: "
                             + conflicts.joined(separator: ", "))
         }
         return messages
@@ -201,7 +202,7 @@ extension UpdateScheme {
         }
     }
 
-    /// Keymap configs store absolute file URLs: point the ones into the legacy library at the new one
+    /// Keymap configs store absolute file URLs: point the ones into the legacy library at the library
     private static func rewriteKeymapConfigs(in keymapping: URL) {
         let library = PlayTools.playCoverContainer.standardizedFileURL.path
         let legacy = legacyLibrary.standardizedFileURL.path
@@ -231,6 +232,17 @@ extension UpdateScheme {
                 try encoder.encode(config).write(to: configURL)
             } catch {
                 Log.shared.error(error)
+            }
+        }
+    }
+
+    /// Removes the legacy folder once nothing is left in it (it is not a container, so this is allowed)
+    private static func removeEmptyLegacyFolders() {
+        for folder in libraryItems + ["PlayChain", ""] {
+            let url = folder.isEmpty ? legacyLibrary : legacyItem(folder)
+            if (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.filter({ $0 != ".DS_Store" })
+                .isEmpty == true {
+                try? FileManager.default.removeItem(at: url)
             }
         }
     }

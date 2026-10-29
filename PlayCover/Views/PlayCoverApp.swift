@@ -78,7 +78,7 @@ enum PlayCoverEntryPoint {
             PlayCoverCLI.run(CommandLine.arguments)
         }
         // Before any view reads the library
-        for message in UpdateScheme.moveLibraryOutOfContainer() {
+        for message in UpdateScheme.moveLibraryBackToContainer() {
             Log.shared.log(message)
         }
         PlayCoverApp.main()

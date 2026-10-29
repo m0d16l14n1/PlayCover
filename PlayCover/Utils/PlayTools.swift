@@ -184,40 +184,39 @@ class PlayTools {
         var binary = try Data(contentsOf: exec)
         try Macho.stripBinary(&binary)
 
+        var injected = false
         Inject.injectMachO(machoPath: exec.path,
                            cmdType: .loadDylib,
                            backup: false,
                            injectPath: "@executable_path/Frameworks/PlayTools.dylib",
-                           finishHandle: { result in
-            if result {
-                Task(priority: .background) {
-                    do {
-                        if !FileManager.default.fileExists(atPath: payload.appendingPathComponent("Frameworks").path) {
-                            try FileManager.default.createDirectory(
-                                at: payload.appendingPathComponent("Frameworks"),
-                                withIntermediateDirectories: true)
-                        }
+                           finishHandle: { injected = $0 })
+        guard injected else {
+            throw PlayCoverError.appCorrupted
+        }
 
-                        let libraryTarget = payload.appendingPathComponent("Frameworks")
-                            .appendingPathComponent("PlayTools")
-                            .appendingPathExtension("dylib")
+        // Copy synchronously: the caller packs the IPA as soon as this returns
+        if !FileManager.default.fileExists(atPath: payload.appendingPathComponent("Frameworks").path) {
+            try FileManager.default.createDirectory(
+                at: payload.appendingPathComponent("Frameworks"),
+                withIntermediateDirectories: true)
+        }
 
-                        let tools = bundledPlayToolsFramework
-                            .appendingPathComponent("PlayTools")
+        let libraryTarget = payload.appendingPathComponent("Frameworks")
+            .appendingPathComponent("PlayTools")
+            .appendingPathExtension("dylib")
 
-                        if FileManager.default.fileExists(atPath: libraryTarget.path) {
-                            try FileManager.default.removeItem(at: libraryTarget)
-                        }
-                        try FileManager.default.copyItem(at: tools, to: libraryTarget)
+        // In the bundled (versioned) framework, PlayTools is a symlink into Versions/Current: copy the binary itself
+        let tools = bundledPlayToolsFramework
+            .appendingPathComponent("PlayTools")
+            .resolvingSymlinksInPath()
 
-                        try libraryTarget.fixExecutable()
-                        try installPluginInIPA(payload)
-                    } catch {
-                        Log.shared.error(error)
-                    }
-                }
-            }
-        })
+        if FileManager.default.fileExists(atPath: libraryTarget.path) {
+            try FileManager.default.removeItem(at: libraryTarget)
+        }
+        try FileManager.default.copyItem(at: tools, to: libraryTarget)
+
+        try libraryTarget.fixExecutable()
+        try installPluginInIPA(payload)
     }
 
     static func removeFromApp(_ exec: URL) async {

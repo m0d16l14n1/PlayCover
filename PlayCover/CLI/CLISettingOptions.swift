@@ -20,8 +20,15 @@ struct CLISettingsPatch {
     var iosFrameworks: Bool?
     var category: LSApplicationCategoryType?
 
+    let originalWidth: Int
+    let originalHeight: Int
+    let originalScaler: Double
+
     init(_ data: AppSettingsData) {
         self.data = data
+        originalWidth = data.windowWidth
+        originalHeight = data.windowHeight
+        originalScaler = data.customScaler
     }
 }
 
@@ -244,7 +251,10 @@ enum CLISettings {
             }
             patch.data.applyResizableAspectRatioPreset()
         }
-        if patch.data.exceedsHighResolutionThreshold {
+        // Only warn when this command changes the resolution, not on every later change to an app that has one
+        let originalSize = (patch.originalWidth, patch.originalHeight, patch.originalScaler)
+        let size = (patch.data.windowWidth, patch.data.windowHeight, patch.data.customScaler)
+        if size != originalSize && patch.data.exceedsHighResolutionThreshold {
             CLITerminal.printError("warning: \(patch.data.windowWidth)x\(patch.data.windowHeight) at scale "
                                    + "\(patch.data.customScaler) is very high and may crash some apps")
         }

@@ -71,6 +71,9 @@ enum CLIAppCommands {
         let action = try args.positional(0, "action (show, set or reset)")
         try args.expectPositionals(2)
         let app = try PlayCoverCLI.findApp(try args.positional(1, "app"))
+        if action != "set" && CLISettings.hasSettingOptions(args) {
+            throw CLIError.usage("Setting options only apply to 'settings set'")
+        }
 
         switch action {
         case "show":
@@ -147,10 +150,11 @@ enum CLIAppCommands {
             CLITerminal.output("Added \(URL(fileURLWithPath: path).lastPathComponent) to \(bundleID)")
         case "remove":
             try args.expectPositionals(3)
-            let name = try args.positional(2, "plugin name")
-            guard PlayTools.userDylibs(bundleIdentifier: bundleID).contains(where: { $0.lastPathComponent == name })
-            else {
-                throw CLIError.failed("\(bundleID) has no plugin named '\(name)'")
+            let given = try args.positional(2, "plugin name")
+            // Accept the name as listed (Plugin.dylib) or without the extension
+            guard let name = PlayTools.userDylibs(bundleIdentifier: bundleID).map({ $0.lastPathComponent })
+                .first(where: { $0 == given || $0 == given + ".dylib" }) else {
+                throw CLIError.failed("\(bundleID) has no plugin named '\(given)'")
             }
             try PlayTools.removeUserDylib(named: name, bundleIdentifier: bundleID, appExecutable: app.executable)
             CLITerminal.output("Removed \(name) from \(bundleID)")

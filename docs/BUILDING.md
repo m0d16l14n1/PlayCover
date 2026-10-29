@@ -9,8 +9,11 @@ xcframework.
 | macOS | Xcode | Status |
 | --- | --- | --- |
 | 27 | 27.1 | Verified locally on macOS 27.2: PlayTools and PlayCover (Release and Nightly) build, SwiftLint clean |
-| 26 Tahoe | 26.x | Built by CI (`Build check` workflow, Xcode 26.6 on `macos-26`) |
+| 26 Tahoe | 26.x | In the CI matrix (Xcode 26.6 on `macos-26`, Xcode 26.3 on `macos-15`); not yet run, GitHub had no runner available |
 | 15 Sequoia | 16.x | Built by CI (`Build check` workflow, Xcode 16.4 on `macos-15`) |
+
+Running a build is a different question from building one: the deployment target is macOS 12, so an app built
+with Xcode 27 on macOS 27 runs on macOS 26 (and 12–25) as well.
 
 GitHub-hosted runners do not offer macOS 27 yet. Once they do, add a `macos-27` entry to the matrix in
 `.github/workflows/build-check.yml` (here and in PlayTools).
@@ -73,6 +76,12 @@ Developer ID certificate, set *Signing & Capabilities › Team* to your own team
 ### From the command line (no Apple developer account needed)
 
 ```bash
+scripts/build-adhoc.sh            # or: scripts/build-adhoc.sh Nightly
+```
+
+which runs:
+
+```bash
 xcodebuild -scheme PlayCover -configuration Release \
   -destination 'generic/platform=macOS' -derivedDataPath build \
   CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
@@ -82,13 +91,24 @@ xcodebuild -scheme PlayCover -configuration Release \
 
 The app is written to `build/Build/Products/Release/PlayCover.app`. Copy it to `/Applications` before use:
 PlayCover installs PlayTools system-wide from its own bundle and expects to live in an Applications folder.
+The deployment target is macOS 12, so a build made with any supported Xcode runs on macOS 12 through 27.
 
 `ENABLE_HARDENED_RUNTIME=NO` is required for ad-hoc builds: with the hardened runtime on, library validation
 refuses to load the ad-hoc signed Sparkle framework ("different Team IDs") and PlayCover exits at launch.
 Release builds signed with a Developer ID keep the hardened runtime.
 
-An ad-hoc build has a different code signature from an installed release, so the first time it reads the KeyCover
-key macOS asks for keychain access; choose *Always Allow*.
+#### Keychain prompts with ad-hoc builds
+
+With KeyCover enabled, PlayCover reads its key from the login keychain. A keychain item records which apps may
+read it without asking, and an ad-hoc signed app is identified only by the hash of that exact build. So each new
+ad-hoc build asks once ("PlayCover wants to use your confidential information…"); *Always Allow* covers that
+build until the next rebuild. This is the same on macOS 26 and 27, and code cannot change it: giving the app a
+stable designated requirement was tried and macOS still asked.
+
+To stop the prompts, sign with a certificate that has a Team ID. A free Apple ID is enough: add it in
+*Xcode › Settings › Accounts*, then in *Signing & Capabilities* pick your *Personal Team* for the PlayCover target
+(and keep *Hardened Runtime* off, as above), and build from Xcode. After one *Always Allow*, later builds signed
+with the same team are not asked again.
 
 ### Release builds (maintainers)
 

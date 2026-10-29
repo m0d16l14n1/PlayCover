@@ -43,9 +43,9 @@ enum PlayCoverCLI {
                    summary: "Install an IPA, optionally applying settings",
                    flags: ["launch"], values: ["playtools"], acceptsSettings: true,
                    run: CLIInstallCommands.install),
-        CLICommand(name: "export", usage: "export <file.ipa>",
+        CLICommand(name: "export", usage: "export <file.ipa> [--output <file.ipa>]",
                    summary: "Inject PlayTools into an IPA for sideloading",
-                   flags: [], values: [], acceptsSettings: false, run: CLIInstallCommands.export),
+                   flags: [], values: ["output"], acceptsSettings: false, run: CLIInstallCommands.export),
         CLICommand(name: "uninstall", usage: "uninstall <app> [--data] [--preferences] [--keymap] [--settings]"
                    + " [--entitlements] [--playchain] [--all] [--yes]",
                    summary: "Remove an app, and optionally everything it left behind",
@@ -68,7 +68,13 @@ enum PlayCoverCLI {
                    flags: [], values: ["dir"], acceptsSettings: false, run: CLIInstallCommands.link),
         CLICommand(name: "help", usage: "help [command | options]", summary: "Show help",
                    flags: [], values: [], acceptsSettings: false, run: { args in
-                       CLITerminal.output(help(for: args.positionals.first))
+                       try args.expectPositionals(1)
+                       let topic = args.positionals.first
+                       if let topic = topic, topic != "options", topic != "settings-options",
+                          !commands.contains(where: { $0.name == topic }) {
+                           throw CLIError.usage("Unknown command '\(topic)'. Run 'playcover help' for usage.")
+                       }
+                       CLITerminal.output(help(for: topic))
                    }),
         CLICommand(name: "version", usage: "version", summary: "Print the PlayCover version",
                    flags: [], values: [], acceptsSettings: false, run: { _ in
@@ -82,7 +88,12 @@ enum PlayCoverCLI {
     static func shouldHandle(_ arguments: [String]) -> Bool {
         guard arguments.count > 1 else { return false }
         let first = arguments[1]
-        return commands.contains { $0.name == first } || ["--help", "-h", "--version"].contains(first)
+        if ["--help", "-h", "--version"].contains(first) {
+            return true
+        }
+        // Launch Services and Xcode only pass options (-psn_…, -NSDocumentRevisionsDebugMode) or file paths,
+        // so any other plain word is a command, possibly a mistyped one that should get an error
+        return !first.hasPrefix("-") && !FileManager.default.fileExists(atPath: first)
     }
 
     static func run(_ arguments: [String]) -> Never {
@@ -177,6 +188,12 @@ enum PlayCoverCLI {
         if let app = apps.first(where: { $0.url.standardizedFileURL == path }) {
             return PlayApp(appUrl: app.url)
         }
+        // Any other bundle of the app, such as its alias in ~/Applications/PlayCover, by bundle identifier
+        let bundleID = [path.appendingPathComponent("Info.plist"), path.appendingPathComponent("Contents/Info.plist")]
+            .lazy.compactMap { NSDictionary(contentsOf: $0)?["CFBundleIdentifier"] as? String }.first
+        if let bundleID = bundleID, let app = apps.first(where: { $0.info.bundleIdentifier == bundleID }) {
+            return PlayApp(appUrl: app.url)
+        }
 
         throw CLIError.failed("No installed app matches '\(query)'. Run 'playcover list' to see installed apps.")
     }
@@ -212,7 +229,7 @@ extension PlayCoverCLI {
     }
 
     static func settingOptionsHelp() -> String {
-        var text = "Setting options (same as the app settings window; booleans take on|off):\n"
+        var text = "Setting options (same as the app settings window; booleans take on|off, a bare --name means on):\n"
         let width = 42
         for section in CLISettingOption.Section.allCases {
             text += "\n  \(section.rawValue):\n"

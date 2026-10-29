@@ -57,8 +57,9 @@ enum CLILaunchCommand {
             if options.wait || session.needsCleanup {
                 if !options.wait {
                     CLITerminal.printError("Waiting for \(app.name) to quit to "
-                                           + (snapshot != nil ? "restore its settings" : "lock its PlayChain")
-                                           + " (use --save to keep the settings)")
+                                           + (snapshot != nil
+                                              ? "restore its settings (use --save to keep them)"
+                                              : "lock its PlayChain"))
                 }
                 await waitForExit(runningApp, app: app)
                 await session.finish()
@@ -176,7 +177,13 @@ final class LaunchSession {
     func unlockKeyCover(passwordFromStdin: Bool) async {
         // Checked without touching KeyCover.shared, whose initializer reads the master password from the keychain
         let keychain = KeyCoverKey(appBundleID: app.info.bundleIdentifier)
-        guard KeyCoverPreferences.shared.keyCoverEnabled != .disabled, keychain.chainEncryptionStatus else { return }
+        guard KeyCoverPreferences.shared.keyCoverEnabled != .disabled else { return }
+        guard keychain.chainEncryptionStatus else {
+            // Like PlayApp.lockKeyCover, encrypt the chain after the app quits even when it was not locked before:
+            // the app may create it during this session
+            chainToLock = keychain
+            return
+        }
 
         if KeyCover.shared.keyCoverPlainTextKey == nil, let password = readPassword(fromStdin: passwordFromStdin) {
             if KeyCoverPassword.shared.validatePassword(password) {
@@ -218,7 +225,8 @@ final class LaunchSession {
         if let playChain = playChainBeforeSession {
             app.settings.settings.playChain = playChain
         }
-        if let chainToLock = chainToLock {
+        if let chainToLock = chainToLock, !chainToLock.chainEncryptionStatus,
+           FileManager.default.fileExists(atPath: chainToLock.decryptedKeyDB.path) {
             do {
                 try KeyCover.shared.lockChain(chainToLock)
             } catch {

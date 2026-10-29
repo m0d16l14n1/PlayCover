@@ -268,6 +268,12 @@ class Macho {
 
     static func isMachoValidArch(_ url: URL) throws -> Bool {
         var binary = try Data(contentsOf: url)
+        // Reading headers out of anything that is not a Mach-O (or is too short for one) would trap
+        let magics = [FAT_MAGIC, FAT_CIGAM, MH_MAGIC_64, MH_CIGAM_64]
+        guard binary.count >= MemoryLayout<mach_header_64>.size,
+              magics.contains(binary.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }) else {
+            throw PlayCoverError.appCorrupted
+        }
         try stripBinary(&binary)
         var result = false
         _ = try iterateLoadCommands(binary: binary) { offset, shouldSwap in

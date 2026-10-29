@@ -56,7 +56,12 @@ public class IPA {
             .appendingEscapedPathComponent(name)
             .appendingPathExtension("ipa")
 
-        try Shell.run("/usr/bin/zip", "-r", newIpa.path, payload.path)
+        // 'zip -r out.ipa /abs/Payload' stored every entry under the absolute temporary path and appended to an
+        // existing out.ipa. An IPA needs Payload/ at the top of the archive, which ditto --keepParent produces.
+        if FileManager.default.fileExists(atPath: newIpa.path) {
+            try FileManager.default.removeItem(at: newIpa)
+        }
+        try Shell.run("/usr/bin/ditto", "-c", "-k", "--norsrc", "--keepParent", payload.path, newIpa.path)
 
         return newIpa
     }

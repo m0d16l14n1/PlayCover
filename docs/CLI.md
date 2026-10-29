@@ -64,6 +64,7 @@ Commands that act on an installed app take `<app>`, which can be:
 | Bundle identifier (exact) | `com.miHoYo.GenshinImpact` |
 | App name, case-insensitive | `"Genshin Impact"` |
 | Path to the installed bundle | `~/Library/Containers/io.playcover.PlayCover/Applications/com.miHoYo.GenshinImpact.app` |
+| Path to its alias (the copy in Launchpad), or any bundle of the app | `"~/Applications/PlayCover/Genshin Impact.app"` |
 
 If a name matches more than one app, the command fails and lists the bundle identifiers to use instead.
 
@@ -139,9 +140,13 @@ and reflected in the exit code. The "a newer version is available in your source
 | `--lldb-terminal` | Start the app under `lldb` in a new Terminal window (the GUI's "Open in terminal"). |
 | `--keycover-password-stdin` | Read the KeyCover master password from the first line of stdin, see [KeyCover](#keycover-and-playchain). |
 
-The CLI waits for the app to quit automatically when it has something to undo afterwards (one-off settings, or a
-PlayChain it unlocked and must lock again), and says so on stderr. Pressing Ctrl-C while it waits restores the
-settings and relocks PlayChain right away; the game itself keeps running.
+The CLI waits for the app to quit automatically when it has something to do afterwards, and says so on stderr:
+restore one-off settings, or, with KeyCover enabled, encrypt the app's PlayChain again (also a chain the app
+created during this run, as the PlayCover window does). Pressing Ctrl-C while it waits restores the settings and
+encrypts PlayChain right away; the game itself keeps running.
+
+With KeyCover's self-generated password, PlayCover reads the key from the login keychain, and macOS may ask to
+allow that once per PlayCover build (see [BUILDING.md](BUILDING.md#keychain-prompts-with-ad-hoc-builds)).
 
 ```bash
 # Test a game as an iPhone 17 Pro Max at 1440p without changing its saved settings
@@ -194,11 +199,13 @@ playcover install ~/Downloads/Game.ipa --device ipad-pro-13-m5 --resolution auto
 ### export
 
 ```bash
-playcover export <file.ipa>
+playcover export <file.ipa> [--output <file.ipa>]
 ```
 
 Injects PlayTools into an IPA for sideloading (the same export the PlayCover menu offers) and prints the path
-of the new IPA, which is written to `~/Documents/<app name>.ipa`.
+of the new IPA: `--output`, or `~/Documents/<app name>.ipa` by default (an existing file there is replaced).
+The app is not added to the library. The new IPA carries `Frameworks/PlayTools.dylib`, loaded from
+`@executable_path/Frameworks/PlayTools.dylib`.
 
 ### uninstall
 
